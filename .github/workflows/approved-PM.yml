@@ -1,0 +1,13 @@
+on: push
+name: Test "approved" label
+jobs:
+  add_label:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Add "approved" label
+      uses: ./
+      with:
+        MIN_APPROVALS: 1
+        LABEL: 'approved'
+        GITHUB_TOKEN: $ {{ secrets.GITHUB_TOKEN }}

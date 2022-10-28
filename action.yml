@@ -1,0 +1,19 @@
+name: 'label-PRs'
+description: 'Label PRs'
+inputs:
+  MIN_APPROVALS:
+    description: 'How many approvals'
+    required: true
+    default: '1'
+  LABEL:
+    description: 'Which label'
+    required: true
+  GITHUB_TOKEN:
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.MIN_APPROVALS }}
+    - ${{ inputs.LABEL }}
+    - ${{ inputs.GITHUB_TOKEN }}
