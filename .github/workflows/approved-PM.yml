@@ -3,11 +3,14 @@ on:
   pull_request_review:
     types: [submitted]
 
-# The default GITHUB_TOKEN must be able to write labels; without this
-# block, repos that default the token to read-only see a 403 from the
-# API call inside the action.
+# Labels live on the issues endpoint
+# (`/repos/{owner}/{repo}/issues/{number}/labels`), so the token needs
+# `issues: write` even though the entity being labeled is a PR. Without
+# this, repos that default the token to read-only get a 403 from the API
+# call inside the action.
 permissions:
-  pull-requests: write
+  contents: read
+  issues: write
 
 jobs:
   add_label:

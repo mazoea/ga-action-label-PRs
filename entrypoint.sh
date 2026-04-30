@@ -31,6 +31,16 @@ if [[ "${GITHUB_EVENT_NAME:-}" != "pull_request_review" ]]; then
   exit 0
 fi
 
+# With `set -u` an unset GITHUB_EVENT_PATH / GITHUB_REPOSITORY would crash
+# with an opaque "unbound variable" error. Validate up front and emit a
+# message that points at the cause.
+: "${GITHUB_EVENT_PATH:?GITHUB_EVENT_PATH is not set; this action must run in a GitHub Actions context}"
+: "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set; this action must run in a GitHub Actions context}"
+if [[ ! -r "$GITHUB_EVENT_PATH" ]]; then
+  echo "GITHUB_EVENT_PATH ($GITHUB_EVENT_PATH) is not readable" >&2
+  exit 1
+fi
+
 GH_API="${GITHUB_API_URL:-https://api.github.com}"
 GH_HDR_ACCEPT="Accept: application/vnd.github.v3+json"
 GH_HDR_AUTH="Authorization: token ${INPUT_GITHUB_TOKEN}"
@@ -49,13 +59,19 @@ GH_URL="${GH_API}/repos/${GITHUB_REPOSITORY}/pulls/${PR_number}/reviews?per_page
 echo "Getting reviews/approvals from [$GH_URL]"
 resp_rev=$(curl --fail-with-body -sSL -H "${GH_HDR_ACCEPT}" -H "${GH_HDR_AUTH}" "$GH_URL")
 
-# Count APPROVED reviews in one shot. Old code base64-encoded each item
-# and looped a shell `for` over the encoded strings, which was both
-# fragile (word-splitting) and misleading (the printed counter capped at
-# the threshold because the labeling block lived inside the loop and
-# `break`-ed early).
-app_cnt=$(echo "$resp_rev" | jq '[.[] | select(.state == "APPROVED")] | length')
-echo "Found [$app_cnt] APPROVED reviews"
+# Count effective approvals: the reviews API can return multiple review
+# objects per user, and a reviewer can later change their state (e.g.
+# APPROVED -> CHANGES_REQUESTED). Group by user and only count those
+# whose *latest* review is APPROVED. Anything else (raw `length`) would
+# over-count and label the PR too early.
+app_cnt=$(echo "$resp_rev" | jq '
+  [ sort_by((.user.id // .user.login // ""), (.submitted_at // ""))
+    | group_by(.user.id // .user.login // "")
+    | map(last)
+    | .[] | select(.state == "APPROVED")
+  ] | length
+')
+echo "Found [$app_cnt] effective APPROVED reviewers"
 
 if [[ "$app_cnt" -lt "$INPUT_MIN_APPROVALS" ]]; then
   echo "Below threshold ($INPUT_MIN_APPROVALS); not labeling."
