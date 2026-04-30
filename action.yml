@@ -1,19 +1,16 @@
 name: 'label-PRs'
-description: 'Label PRs'
+description: 'Apply a label to a PR once it accumulates a configurable number of approving reviews.'
 inputs:
   MIN_APPROVALS:
-    description: 'How many approvals'
+    description: 'Minimum number of APPROVED reviews required before the label is applied. Must be a positive integer.'
     required: true
     default: '1'
   LABEL:
-    description: 'Which label'
+    description: 'Label name to apply once MIN_APPROVALS is reached.'
     required: true
   GITHUB_TOKEN:
+    description: 'Token used to call the GitHub API (must be able to read reviews and write issue labels).'
     required: true
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - ${{ inputs.MIN_APPROVALS }}
-    - ${{ inputs.LABEL }}
-    - ${{ inputs.GITHUB_TOKEN }}

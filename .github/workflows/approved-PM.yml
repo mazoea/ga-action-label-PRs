@@ -1,17 +1,25 @@
 name: Test "approved" label
-on: push
+on:
+  pull_request_review:
+    types: [submitted]
 
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  
+# Labels live on the issues endpoint
+# (`/repos/{owner}/{repo}/issues/{number}/labels`), so the token needs
+# `issues: write` even though the entity being labeled is a PR. Without
+# this, repos that default the token to read-only get a 403 from the API
+# call inside the action.
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   add_label:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Add "approved" label
-      uses: ./
-      with:
-        MIN_APPROVALS: 1
-        LABEL: 'approved'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Add "approved" label
+        uses: ./
+        with:
+          MIN_APPROVALS: 1
+          LABEL: 'approved'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.20
 RUN apk add --no-cache curl jq bash
-ADD entrypoint.sh /entrypoint.sh
+COPY --chmod=0755 entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
